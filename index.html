@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Classroom Vote - 6/1</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #ec4899;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; letter-spacing: 0.3px; }
+        body { background: var(--bg-color); color: var(--text-dark); min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; background-image: radial-gradient(circle at 10% 20%, rgba(236, 72, 153, 0.1) 0%, transparent 20%), radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%); padding-bottom: 50px; }
+
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.8) translateY(20px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(236, 72, 153, 0); } 100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); } }
+        
+        @keyframes flyUpSpin { 
+            0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; } 
+            100% { transform: translate(-50%, -250px) scale(0.4) rotate(720deg); opacity: 0; } 
+        }
+
+        .secret-trigger { position: fixed; width: 50px; height: 50px; z-index: 99999; }
+        #trigger-tr { top: 0; right: 0; }
+        #trigger-bl { bottom: 0; left: 0; }
+
+        .screen { display: none; width: 100%; max-width: 600px; padding: 20px; flex-direction: column; align-items: center; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .screen.active { display: flex; }
+
+        .header-title { font-size: 2.2rem; font-weight: 800; text-align: center; margin-bottom: 10px; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: float 3s ease-in-out infinite; letter-spacing: 1px; }
+        
+        .login-box { background: var(--card-bg); padding: 40px 30px; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); width: 100%; text-align: center; margin-top: 50px; border: 2px solid #f1f5f9; }
+        .input-name { width: 100%; padding: 15px 20px; font-size: 1.2rem; border: 2px solid #e2e8f0; border-radius: 15px; margin-bottom: 20px; text-align: center; transition: 0.3s; font-weight: 600; color: var(--primary); letter-spacing: 0.5px; }
+        .input-name:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1); }
+        .btn-start { width: 100%; padding: 15px; font-size: 1.2rem; font-weight: 700; color: white; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 15px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(236, 72, 153, 0.3); letter-spacing: 0.5px; }
+        .btn-start:active { transform: scale(0.95); }
+
+        .question-card { background: var(--card-bg); width: 100%; padding: 25px 20px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.06); text-align: center; margin-bottom: 20px; position: relative; overflow: hidden; border: 2px solid #f8fafc; }
+        .question-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+        .q-text { font-size: 1.5rem; font-weight: 800; line-height: 1.4; color: var(--text-dark); margin-top: 5px; }
+        
+        .grid-friends { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; padding-bottom: 40px; }
+        .friend-card { position: relative; aspect-ratio: 1/1; border-radius: 18px; overflow: hidden; cursor: pointer; box-shadow: 0 8px 15px rgba(0,0,0,0.1); transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); background-color: #cbd5e1; border: 2px solid transparent; }
+        .friend-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; pointer-events: none; }
+        .friend-card:hover { transform: scale(1.08) translateY(-5px); z-index: 10; box-shadow: 0 15px 25px rgba(0,0,0,0.2); border-color: var(--secondary); }
+        .friend-card:active { transform: scale(0.95); }
+        .friend-number { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.8); color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 6px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); letter-spacing: 0px;}
+        
+        /* 🔍 ย้ายปุ่มแว่นขยายไปขวาบน และทำให้ไม่รบกวนพื้นที่กดตรงกลาง */
+        .btn-profile-zoom { position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.9); color: var(--primary); font-size: 0.7rem; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 30; transition: 0.2s; border: 1px solid #e2e8f0; pointer-events: auto; }
+        .btn-profile-zoom:hover { transform: scale(1.3); background: var(--primary); color: white; }
+
+        .result-box { width: 100%; background: var(--card-bg); border-radius: 30px; padding: 30px 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); text-align: center; border: 2px solid #f1f5f9; display: flex; flex-direction: column; }
+        .r-question { font-size: 1.3rem; font-weight: 800; color: var(--primary); margin-bottom: 25px; line-height: 1.4; }
+        
+        .leaderboard { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .rank-row { display: flex; align-items: center; background: #f8fafc; padding: 10px 15px; border-radius: 20px; transition: 0.3s; border: 1px solid #e2e8f0; }
+        .rank-row:nth-child(1) { background: linear-gradient(135deg, #fffbeb, #fef3c7); border-color: #fde68a; transform: scale(1.05); z-index: 5; box-shadow: 0 10px 20px rgba(251, 191, 36, 0.2); }
+        .rank-num { font-size: 1.4rem; font-weight: 800; width: 35px; color: #94a3b8; }
+        .rank-row:nth-child(1) .rank-num { color: #f59e0b; font-size: 1.8rem; }
+        .rank-img { width: 50px; height: 50px; border-radius: 14px; object-fit: cover; margin-right: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .rank-row:nth-child(1) .rank-img { width: 55px; height: 55px; border: 3px solid #f59e0b; }
+        .rank-info { flex-grow: 1; text-align: left; }
+        .rank-name { font-weight: 700; font-size: 1.1rem; color: var(--text-dark); }
+        .rank-bar-bg { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .rank-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 4px; transition: width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); width: 0%; }
+        .rank-votes { font-weight: 800; color: var(--secondary); font-size: 1.2rem; margin-left: 10px; }
+
+        .btn-global-top { position: fixed; top: 15px; right: 15px; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fffbeb; border: 2px solid #fffbeb; padding: 8px 15px; border-radius: 20px; font-weight: 800; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer; z-index: 5000; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
+        .btn-global-top:active { transform: scale(0.95); }
+
+        #admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(20px); color: white; z-index: 20000; display: none; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; }
+        #admin-panel.active { display: flex; animation: fadeIn 0.3s ease; }
+        .admin-box { background: #1e293b; width: 100%; max-width: 600px; padding: 25px; border-radius: 25px; margin-bottom: 20px; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .admin-title { font-size: 1.3rem; font-weight: 800; color: #fbbf24; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        .admin-input { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #334155; background: #0f172a; color: white; font-family: 'Kanit'; font-size: 1.1rem; margin-bottom: 10px; }
+        .admin-select { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #334155; background: #0f172a; color: white; font-family: 'Kanit'; font-size: 1rem; margin-bottom: 15px; cursor: pointer; }
+        .admin-btn { padding: 10px 15px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; font-family: 'Kanit'; transition: 0.2s; font-size: 0.9rem;}
+        .btn-add { background: #10b981; color: white; width: 100%; font-size: 1.1rem; padding: 12px; }
+        .btn-edit { background: #3b82f6; color: white; }
+        .btn-del { background: #ef4444; color: white; }
+        .btn-close { background: #64748b; color: white; }
+        .q-list-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px 15px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #334155; }
+        .q-list-text { flex-grow: 1; margin-right: 10px; font-size: 0.95rem; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 30000; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; width: 90%; max-width: 320px; border-radius: 25px; padding: 30px; text-align: center; color: var(--text-dark); display: flex; flex-direction: column; }
+        .modal-input { width: 100%; padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; margin: 15px 0; font-family: 'Kanit'; font-size: 1.2rem; text-align: center; font-weight: 800; letter-spacing: 10px; }
+        
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { padding: 12px 25px; border-radius: 30px; font-weight: 700; color: white; font-size: 0.95rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; letter-spacing: 0.5px; }
+        .toast.success { background: linear-gradient(135deg, #10b981, #059669); }
+        .toast.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .toast.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--secondary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; flex-shrink: 0; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .user-badge { position: fixed; top: 15px; left: 15px; background: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; align-items: center; gap: 5px; z-index: 5000; border: 2px solid #f8fafc; color: var(--text-dark); pointer-events: auto; }
+        .user-badge.active { display: flex; animation: popIn 0.3s; }
+        .user-badge span { color: var(--primary); font-weight: 800; }
+        .btn-logout { border:none; background:#fee2e2; color:#b91c1c; padding:6px 14px; border-radius:12px; font-size:0.85rem; cursor:pointer; font-weight:700; margin-left:5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-family: 'Kanit', sans-serif; transition:0.2s; letter-spacing: 0.5px; }
+        .btn-logout:active { transform: scale(0.9); }
+
+        .btn-undo { background:#f59e0b; color:white; border:none; padding:8px 20px; border-radius:20px; font-size:0.9rem; font-weight:700; cursor:pointer; margin: 0 auto 15px auto; display:none; box-shadow: 0 4px 10px rgba(245,158,11,0.3); font-family: 'Kanit', sans-serif; transition:0.2s; width: fit-content; align-self: center; letter-spacing: 0.5px; }
+        .btn-undo:active { transform: scale(0.95); }
+
+        .live-alert { position: fixed; bottom: -80px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); color: #fff; padding: 10px 25px; border-radius: 30px; border: 2px solid var(--primary); z-index: 4000; font-size: 0.9rem; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.3); transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+        .live-alert.show { bottom: 25px; }
+
+        .flying-face { position: fixed; width: 65px; height: 65px; border-radius: 18px; object-fit: cover; pointer-events: none; z-index: 99999; box-shadow: 0 15px 30px rgba(0,0,0,0.4); animation: flyUpSpin 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; border: 3px solid var(--secondary); }
+
+        @media (max-width: 450px) { .grid-friends { grid-template-columns: repeat(4, 1fr); gap: 8px; } }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+    <div id="live-alert" class="live-alert"></div>
+
+    <div id="trigger-tr" class="secret-trigger" onclick="registerTap('TR')"></div>
+    <div id="trigger-bl" class="secret-trigger" onclick="registerTap('BL')"></div>
+
+    <div class="user-badge" id="user-badge">
+        👤 <span id="display-username">Name</span>
+        <button class="btn-logout" onclick="logout()">ออก</button>
+    </div>
+
+    <button class="btn-global-top" id="btn-top" onclick="openGlobalTop()" style="display:none; right: 70px;">🏆 ท็อป</button>
+
+    <div id="screen-login" class="screen active">
+        <div class="header-title" style="font-size:2.5rem; margin-top:30px;">🔥 6/1 VOTE!</div>
+        <div class="login-box">
+            <h2 style="color:var(--text-dark); font-weight:800; letter-spacing:0.5px;">ใครคือที่สุดเรื่อง...? 🤩</h2>
+            <p style="margin-top:5px; font-size:0.95rem; font-weight:400;">ใส่ชื่อเพื่อเริ่มโหวตกันเลย</p>
+            <input type="text" id="input-username" class="input-name" placeholder="พิมพ์ชื่อเล่นของคุณ..." autocomplete="off">
+            <button class="btn-start" onclick="saveNameAndStart()">ลุยเลย! </button>
+        </div>
+    </div>
+
+    <div id="screen-vote" class="screen">
+        <div class="header-title" style="font-size:1.6rem;">โหวตเพื่อนคนนี้!</div>
+        <div class="question-card">
+            <div style="font-size:0.85rem; color:var(--secondary); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">คำถามสุดโหด(จากai)</div>
+            <div class="q-text" id="display-question">กำลังโหลดคำถาม...</div>
+        </div>
+        <div style="width:100%; text-align:left; margin-bottom:12px; font-weight:600; color:var(--text-light); padding-left:10px; font-size:1.05rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>👇 จิ้มรูปเพื่อโหวต!</span>
+            <span style="font-size:0.8rem; font-weight:400;">(กด 🔍 ดูประวัติ)</span>
+        </div>
+        <div class="grid-friends" id="grid-friends"></div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <div class="header-title" style="font-size:1.8rem;">🏆 TOP โหวต!</div>
+        <div class="result-box">
+            <div style="font-size:1rem; color:var(--text-light); font-weight:600; margin-bottom:5px;">ผลโหวตล่าสุด:</div>
+            <div class="r-question" id="result-question">คำถาม...</div>
+            <div id="loading-results" class="loader"></div>
+            <div class="leaderboard" id="leaderboard-container" style="display:none;"></div>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%; margin-top:20px;">
+            <button id="btn-undo" class="btn-undo" onclick="undoVote()">🔙 แก้ใหม่</button>
+            <button class="btn-start" onclick="nextQuestion()" style="animation: pulseGlow 2s infinite;">โหวตข้อต่อไป ⏭️</button>
+        </div>
+    </div>
+
+    <div id="modal-profile" class="modal-overlay">
+        <div class="modal-box" style="max-width: 400px; padding: 20px;">
+            <h3 id="profile-title" style="color:#ec4899; font-weight:800; margin-bottom:15px; border-bottom:2px solid #f1f5f9; padding-bottom:10px; letter-spacing:0.5px;">🔍 ประวัติความตึง</h3>
+            <div id="profile-content" style="max-height: 50vh; overflow-y: auto; text-align:left; font-size:0.95rem; color:#334155; margin-bottom:15px; font-weight:400;"></div>
+            <button class="btn-start" style="background:#f1f5f9; color:#64748b; box-shadow:none;" onclick="closeModal('modal-profile')">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <div id="modal-global-top" class="modal-overlay">
+        <div class="modal-box" style="max-width: 450px; max-height: 85vh; padding: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid #f1f5f9; padding-bottom:10px;">
+                <h3 style="color:#f59e0b; font-weight:800; margin:0; font-size:1.4rem; letter-spacing:0.5px;">🏆 ท็อปตัวตึง</h3>
+                <button onclick="closeModal('modal-global-top')" style="background:#f1f5f9; border:none; padding:8px 15px; border-radius:12px; font-weight:bold; color:#64748b; cursor:pointer;">ปิด ✖️</button>
+            </div>
+            <div id="global-top-content" style="overflow-y:auto; flex-grow:1; padding-right:5px; padding-bottom:20px;"></div>
+        </div>
+    </div>
+
+    <div id="modal-custom-confirm" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color:#1e293b; font-weight:800; margin-bottom:10px; letter-spacing:0.5px;">⚠️ ยืนยันการทำรายการ?</h3>
+            <p id="custom-confirm-text" style="margin-bottom:20px; color:#64748b; font-size:1rem; font-weight:400;"></p>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-start" style="background:#f1f5f9; color:#64748b; box-shadow:none;" onclick="closeModal('modal-custom-confirm')">ยกเลิก</button>
+                <button class="btn-start" style="background:#ef4444;" id="custom-confirm-btn">ยืนยันลุยเลย!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-panel">
+        <div style="width:100%; max-width:600px; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="color:#fbbf24; font-weight:800; font-size:1.8rem; letter-spacing:1px;">🛠️ GOD MODE</h2>
+            <button class="admin-btn btn-close" onclick="closeAdmin()">ปิดหน้าต่าง ✖️</button>
+        </div>
+        <div class="admin-box">
+            <div class="admin-title">➕ เพิ่มคำถามใหม่</div>
+            <input type="text" id="admin-new-q" class="admin-input" placeholder="พิมพ์คำถามปั่นๆ ตรงนี้...">
+            <button class="admin-btn btn-add" onclick="adminAddQuestion()">เพิ่มเข้าสู่ระบบ 🚀</button>
+        </div>
+        <div class="admin-box">
+            <div class="admin-title">📊 ส่องผลโหวต & จัดการคะแนน</div>
+            <select id="admin-q-select" class="admin-select" onchange="adminViewResults(this.value)"><option value="">-- เลือกคำถาม --</option></select>
+            <div id="admin-result-view" style="background:#0f172a; padding:15px; border-radius:12px; margin-bottom:15px; display:none;">
+                <h4 style="color:#38bdf8; margin-bottom:10px;">🏆 ผลโหวต:</h4>
+                <div id="admin-leaderboard" style="font-size:0.9rem; color:#cbd5e1;"></div>
+            </div>
+            <button class="admin-btn btn-del" style="width:100%; font-size:1rem;" onclick="adminClearVotes()">🗑️ ล้างคะแนน "ข้อที่เลือก"</button>
+        </div>
+        <div class="admin-box">
+            <div class="admin-title">📝 จัดการคำถามทั้งหมด</div>
+            <div id="admin-q-list" style="max-height: 300px; overflow-y: auto; padding-right:5px;"></div>
+        </div>
+        <div class="admin-box" style="border-color:#7f1d1d;">
+            <div class="admin-title" style="color:#f87171;">⚠️ โซนอันตรายสูงสุด</div>
+            <button class="admin-btn btn-del" style="background:#991b1b; width:100%; font-size:1.1rem; padding:15px;" onclick="adminNukeAll()">☢️ ลบข้อมูลการโหวตทั้งหมด (ทุกข้อ)</button>
+        </div>
+    </div>
+
+    <div id="modal-admin-auth" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color:#1e293b; font-weight:800; letter-spacing:0.5px;">🔐 รหัสผ่านแอดมิน</h3>
+            <input id="inp-pin" type="tel" class="modal-input" placeholder="0 0 0 0" maxlength="4">
+            <div style="display:flex; gap:10px;">
+                <button class="btn-start" style="background:#f1f5f9; color:#64748b; box-shadow:none;" onclick="closeModal('modal-admin-auth')">ยกเลิก</button>
+                <button class="btn-start" onclick="checkPin()">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, runTransaction, onValue, remove, set, push, update, get, query, orderByChild, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDihX2x7-HzugJSFEHraZGsOUrLXiB2ChU", authDomain: "shop-25ffb.firebaseapp.com", databaseURL: "https://shop-25ffb-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "shop-25ffb", storageBucket: "shop-25ffb.firebasestorage.app", messagingSenderId: "684533270600", appId: "1:684533270600:web:0fd955874c6310c0f3707d", measurementId: "G-F21MPV5Z67" };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const FRIEND_NAMES = {
+            1:"ไอโฟน", 2:"กร", 3:"ลีโอ", 4:"ตูม", 5:"ปุร", 6:"ภูมิ", 7:"ผา", 8:"คิว", 9:"บอส", 10:"คาลอส", 
+            11:"ซัน", 12:"ปลื้ม", 13:"แบม", 14:"เพลง", 15:"มาย", 16:"พลอย", 17:"ลูกตาล", 18:"ญาดา", 19:"ออม", 20:"ไอติม", 
+            21:"สิน", 22:"ธิชา", 23:"เนตร", 24:"มุก", 25:"ดีน่า", 26:"เปตอง", 27:"ปาตี้", 28:"ฟิว", 29:"ยู้"
+        };
+
+        const TOTAL_FRIENDS = 29; 
+        const baseQuestions = [
+            "คนยืมตังค์เนียนลืมตลอดชาติ", "คนยืมปากกาเพื่อนแล้วหายสาบสูญ", "คนป่วยทิพย์แอบนอนห้องพยาบาล", "คนขอไปห้องน้ำทุกสิบนาที", "คนแอบแดกขนมใต้โต๊ะแต่ครูไม่จับ",
+            "คนลงสตอรี่อกหักแต่ชีวิตจริงดีดจัด", "คนนกตั้งแต่ยังไม่ได้ทัก", "คนหน้าตาเจ้าชู้แต่จริงๆโสดสนิท", "คนพูดภาษาต่างดาวเพื่อนฟังไม่รู้เรื่อง", "คนขี้วีนพร้อมบวกกับอากาศ",
+            "คนทำตัวมีพิรุธเวลาของเพื่อนหาย", "คนหิวตลอดเวลาเหมือนเลี้ยงพยาธิ", "คนคลั่งรักไอดอลจนเสียสติ", "คนเล่นมุกแป้กแล้วขำเองคนเดียว", "คนแต่งตัวผิดระเบียบจนครูฝ่ายปกครองท้อ",
+            "คนร้องเพลงเพี้ยนแต่มั่นใจเปิดคอนเสิร์ต", "คนเต้นยับหน้าเสาธงไม่อายใคร", "คนชอบคุยคนเดียวเหมือนมีเพื่อนทิพย์", "คนตั้งใจเรียนแต่สอบตก", "คนไม่ทำเหี้ยไรเลยแต่สอบผ่านเฉย",
+            "คนสาระแนเรื่องชาวบ้านที่หนึ่ง", "คนขี้นินทาปากลำโพงแตก", "คนขี้อ่อยแต่ไม่มีใครเอา", "คนอวดฉลาดแต่โชว์โง่ประจำ", "คนเลียแข้งเลียขาครูระดับเทพ",
+            "คนทรงป๋าแต่ยืมตังค์เพื่อนแดกข้าว", "คนสมองหมกมุ่นแต่เรื่องทะลึ่ง", "คนเอ๋อแดกถามอะไรก็ไม่รู้เรื่อง", "คนหิวแสงเรียกร้องความสนใจ", "คนตอแหลหน้าตายจับไม่ได้ไล่ไม่ทัน",
+            "คนแหกปากโวยวายเหมือนฟาร์มหมาแตก", "คนเศร้าทิพย์เรียกร้องความสงสาร", "คนบ้าผู้ชาย/ผู้หญิงจนเก็บทรงไม่อยู่", "คนหน้าลอยรองพื้นผิดเบอร์มาแต่ไกล", "คนซกมกเสื้อผ้ายับเหมือนออกมาจากปากหมา",
+            "คนเต่าเหม็นเปรี้ยวทะลุแมสก์", "คนผมมันเยิ้มจนทอดปลาได้", "คนชอบขัดจังหวะตอนคนอื่นคุยกัน", "คนขี้โม้จนเพื่อนเอือมระอา", "คนด่าคนอื่นเก่งแต่ตัวเองก็ทำ"
+        ];
+        
+        let allQuestionsObj = {};
+        let currentQuestionKey = "";
+        let currentQuestionText = "";
+        let unsubscribeResult = null;
+        let unsubscribeAdminVote = null;
+        let lastVotedFriendId = null;
+        let availableKeys = []; 
+        const PAGE_LOAD_TIME = Date.now();
+        let liveAlertTimeout;
+
+        window.showToast = (msg, type = 'success') => {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`; toast.innerText = msg;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(-20px)'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+        };
+
+        window.showCustomConfirm = (msg, onConfirmCallback) => {
+            document.getElementById('custom-confirm-text').innerText = msg;
+            document.getElementById('custom-confirm-btn').onclick = () => { window.closeModal('modal-custom-confirm'); onConfirmCallback(); };
+            document.getElementById('modal-custom-confirm').classList.add('active');
+        };
+
+        window.flyFace = (x, y, imgSrc) => {
+            let el = document.createElement('img');
+            el.src = imgSrc;
+            el.className = 'flying-face';
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 500);
+        };
+
+        window.showLiveAlert = (msg) => {
+            const el = document.getElementById('live-alert');
+            el.innerText = msg;
+            el.classList.add('show');
+            clearTimeout(liveAlertTimeout);
+            liveAlertTimeout = setTimeout(() => { el.classList.remove('show'); }, 4000);
+        };
+
+        const tickerQuery = query(ref(db, 'live_ticker'), orderByChild('time'), limitToLast(1));
+        onChildAdded(tickerQuery, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.time > PAGE_LOAD_TIME) {
+                window.showLiveAlert(data.msg);
+            }
+        });
+
+        onValue(ref(db, 'questions'), (snapshot) => {
+            if (!snapshot.exists()) {
+                let updates = {}; baseQuestions.forEach((q, i) => { updates['bq_' + i] = q; }); set(ref(db, 'questions'), updates);
+            } else {
+                allQuestionsObj = snapshot.val();
+                if(document.getElementById('display-question').innerText === "กำลังโหลดคำถาม...") window.loadNewQuestion();
+                if(document.getElementById('admin-panel').classList.contains('active')) window.renderAdminQuestions();
+            }
+        });
+
+        window.onload = () => {
+            const savedName = localStorage.getItem('voterName');
+            if(savedName) {
+                document.getElementById('display-username').innerText = savedName;
+                document.getElementById('user-badge').classList.add('active');
+                document.getElementById('btn-top').style.display = 'flex';
+                window.showScreen('screen-vote');
+            }
+            const grid = document.getElementById('grid-friends');
+            for(let i=1; i<=TOTAL_FRIENDS; i++) {
+                const card = document.createElement('div'); card.className = 'friend-card';
+                // 🚀 แก้ไข: เพิ่ม event.stopPropagation() ป้องกันการกดทะลุไปโหวต
+                card.innerHTML = `<img src="${i}.jpg" onerror="this.src='https://via.placeholder.com/150/cbd5e1/64748b?text=${i}'"><div class="friend-number">${FRIEND_NAMES[i] || i}</div>
+                                  <div class="btn-profile-zoom" onclick="event.stopPropagation(); window.openProfile(${i});">🔍</div>`;
+                card.onclick = (e) => { 
+                    let imgEl = card.querySelector('img');
+                    window.flyFace(e.clientX, e.clientY, imgEl.src); 
+                    window.handleVote(i); 
+                };
+                grid.appendChild(card);
+            }
+        };
+
+        window.showScreen = (id) => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); };
+        window.closeModal = (id) => { document.getElementById(id).classList.remove('active'); };
+        window.logout = () => { localStorage.removeItem('voterName'); document.getElementById('user-badge').classList.remove('active'); document.getElementById('btn-top').style.display = 'none'; document.getElementById('input-username').value = ''; window.showScreen('screen-login'); };
+
+        window.saveNameAndStart = () => {
+            const name = document.getElementById('input-username').value.trim();
+            if(!name) { window.showToast("พิมพ์ชื่อก่อนลุยดิค้าบบ!", "error"); return; }
+            localStorage.setItem('voterName', name);
+            document.getElementById('display-username').innerText = name;
+            document.getElementById('user-badge').classList.add('active');
+            document.getElementById('btn-top').style.display = 'flex';
+            window.showScreen('screen-vote'); 
+            if(Object.keys(allQuestionsObj).length > 0) window.loadNewQuestion();
+        };
+
+        window.loadNewQuestion = () => {
+            const allKeys = Object.keys(allQuestionsObj); if(allKeys.length === 0) return;
+            if (availableKeys.length === 0) { availableKeys = [...allKeys]; }
+            const randomIndex = Math.floor(Math.random() * availableKeys.length);
+            const newKey = availableKeys[randomIndex];
+            availableKeys.splice(randomIndex, 1);
+            currentQuestionKey = newKey; currentQuestionText = allQuestionsObj[newKey];
+            const qEl = document.getElementById('display-question');
+            let c = 0; const t = setInterval(() => {
+                qEl.innerText = allQuestionsObj[allKeys[Math.floor(Math.random() * allKeys.length)]]; c++;
+                if(c > 10) { clearInterval(t); qEl.innerText = currentQuestionText; }
+            }, 50);
+        };
+
+        window.openProfile = (friendId) => {
+            const name = FRIEND_NAMES[friendId] || friendId;
+            document.getElementById('profile-title').innerText = `🔍 ประวัติความตึงของ ${name}`;
+            const content = document.getElementById('profile-content');
+            content.innerHTML = '<div class="loader"></div>';
+            document.getElementById('modal-profile').classList.add('active');
+            get(ref(db, 'votes')).then((snapshot) => {
+                const votesData = snapshot.val();
+                if(!votesData) { content.innerHTML = '<div style="text-align:center;">ยังสะอาด บริสุทธิ์ ไม่มีใครโหวตให้เลย! 😇</div>'; return; }
+                let html = '';
+                for(let qKey in votesData) {
+                    if(votesData[qKey]['friend_'+friendId]) {
+                        const score = votesData[qKey]['friend_'+friendId];
+                        const qText = allQuestionsObj[qKey] || "คำถามถูกลบแล้ว";
+                        html += `<div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 15px; border-radius:12px; margin-bottom:8px;">
+                                    <div style="font-weight:700; color:#334155;">🏅 ${qText}</div>
+                                    <div style="font-size:0.85rem; color:#ec4899; font-weight:600;">โดนโหวตไป ${score} ครั้ง</div>
+                                 </div>`;
+                    }
+                }
+                content.innerHTML = html || '<div style="text-align:center; color:#10b981; font-weight:600;">ยังสะอาด บริสุทธิ์ 😇</div>';
+            });
+        };
+
+        window.handleVote = async (friendId) => {
+            if(!currentQuestionKey) return;
+            document.getElementById('result-question').innerText = currentQuestionText;
+            document.getElementById('loading-results').style.display = 'block';
+            document.getElementById('leaderboard-container').style.display = 'none';
+            lastVotedFriendId = friendId; 
+            document.getElementById('btn-undo').style.display = 'block'; 
+            window.showScreen('screen-result');
+            const voteRef = ref(db, `votes/${currentQuestionKey}/friend_${friendId}`);
+            try { 
+                await runTransaction(voteRef, (currentVotes) => (currentVotes || 0) + 1); 
+                window.listenToResults(currentQuestionKey); 
+                const name = FRIEND_NAMES[friendId] || friendId;
+                push(ref(db, 'live_ticker'), {
+                    msg: `🔥 มีคนโหวต ${name} ในโจทย์ "${currentQuestionText}" `,
+                    time: Date.now()
+                });
+            } 
+            catch (error) { window.showToast("โหวตไม่ติด ลองใหม่อีกที!", "error"); window.showScreen('screen-vote'); }
+        };
+
+        window.undoVote = async () => {
+            if(!lastVotedFriendId || !currentQuestionKey) return;
+            const voteRef = ref(db, `votes/${currentQuestionKey}/friend_${lastVotedFriendId}`);
+            try {
+                await runTransaction(voteRef, (currentVotes) => (currentVotes || 0) > 0 ? currentVotes - 1 : 0);
+                window.showToast("🔙 ยกเลิกโหวตเรียบร้อย เลือกใหม่เลย!", "info");
+                lastVotedFriendId = null; document.getElementById('btn-undo').style.display = 'none';
+                window.showScreen('screen-vote');
+            } catch (error) { window.showToast("ยกเลิกไม่ได้ ลองใหม่นะ", "error"); }
+        };
+
+        window.listenToResults = (questionKey) => {
+            if(unsubscribeResult) unsubscribeResult();
+            unsubscribeResult = onValue(ref(db, `votes/${questionKey}`), (snapshot) => {
+                const data = snapshot.val();
+                document.getElementById('loading-results').style.display = 'none';
+                const container = document.getElementById('leaderboard-container');
+                container.style.display = 'flex'; container.innerHTML = '';
+                if(!data) { container.innerHTML = '<div style="color:var(--text-light); padding:20px; font-weight:bold;">แอดมินล้างโหวตไปแล้วจ้า!</div>'; return; }
+                let resultsArr = []; let maxVotes = 0;
+                for (let key in data) { const count = data[key]; if(count > maxVotes) maxVotes = count; resultsArr.push({ id: key.replace('friend_', ''), votes: count }); }
+                resultsArr.sort((a, b) => b.votes - a.votes);
+                resultsArr.slice(0, 5).forEach((item, index) => {
+                    const row = document.createElement('div'); row.className = 'rank-row';
+                    const percentage = maxVotes > 0 ? (item.votes / maxVotes) * 100 : 0;
+                    let rankIcon = `#${index+1}`; if(index===0) rankIcon = '🥇'; else if(index===1) rankIcon = '🥈'; else if(index===2) rankIcon = '🥉';
+                    const friendName = FRIEND_NAMES[item.id] || item.id;
+                    row.innerHTML = `<div class="rank-num">${rankIcon}</div><img src="${item.id}.jpg" class="rank-img" onerror="this.src='https://via.placeholder.com/150/cbd5e1/64748b?text=${item.id}'"><div class="rank-info"><div class="rank-name">${friendName}</div><div class="rank-bar-bg"><div class="rank-bar-fill" style="width: 0%"></div></div></div><div class="rank-votes">${item.votes}</div>`;
+                    container.appendChild(row);
+                    setTimeout(() => { row.querySelector('.rank-bar-fill').style.width = percentage + '%'; }, 50);
+                });
+            });
+        };
+
+        window.nextQuestion = () => { lastVotedFriendId = null; document.getElementById('btn-undo').style.display = 'none'; window.showScreen('screen-vote'); window.loadNewQuestion(); };
+
+        window.openGlobalTop = () => {
+            document.getElementById('modal-global-top').classList.add('active');
+            const content = document.getElementById('global-top-content');
+            content.innerHTML = '<div class="loader"></div>';
+            get(ref(db, 'votes')).then((snapshot) => {
+                const votesData = snapshot.val();
+                if(!votesData) { content.innerHTML = '<div style="padding:20px; color:#64748b; font-weight:bold; text-align:center;">ยังไม่มีใครโหวตเลย!</div>'; return; }
+                let html = '';
+                for(let qKey in votesData) {
+                    const qText = allQuestionsObj[qKey] || "คำถามถูกลบแล้ว"; const qVotes = votesData[qKey]; let maxVotes = 0; let topFriendId = "";
+                    for(let fKey in qVotes) { if(qVotes[fKey] > maxVotes) { maxVotes = qVotes[fKey]; topFriendId = fKey.replace('friend_', ''); } }
+                    if(maxVotes > 0) {
+                        const topName = FRIEND_NAMES[topFriendId] || topFriendId;
+                        html += `<div style="background:#fffbeb; border:2px solid #fde68a; border-radius:15px; padding:12px; margin-bottom:12px; display:flex; align-items:center; text-align:left;"><img src="${topFriendId}.jpg" onerror="this.src='https://via.placeholder.com/150/cbd5e1/64748b?text=${topFriendId}'" style="width:55px; height:55px; border-radius:12px; object-fit:cover; margin-right:15px; border:2px solid #f59e0b;"><div style="overflow:hidden;"><div style="font-size:0.75rem; color:#ec4899; font-weight:700; margin-bottom:2px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${qText}</div><div style="font-size:1.1rem; font-weight:800; color:#1e293b;">🥇 ${topName}</div><div style="font-size:0.8rem; color:#d97706; font-weight:600;">นำอยู่: ${maxVotes} โหวต 🏆</div></div></div>`;
+                    }
+                }
+                content.innerHTML = html || '<div style="padding:20px; color:#64748b; text-align:center;">ไม่มีผลผู้ชนะ</div>';
+            });
+        };
+
+        let taps = []; let tapTimer;
+        window.registerTap = (side) => {
+            taps.push(side); clearTimeout(tapTimer); tapTimer = setTimeout(() => { taps = []; }, 2000);
+            if (taps.slice(-2).join('') === 'TRBL') { document.getElementById('modal-admin-auth').classList.add('active'); taps=[]; }
+        };
+
+        window.checkPin = () => {
+            if(document.getElementById('inp-pin').value === '0909') { window.closeModal('modal-admin-auth'); document.getElementById('admin-panel').classList.add('active'); document.getElementById('inp-pin').value = ''; window.renderAdminQuestions(); } 
+            else window.showToast('รหัสผิดพลาด!', 'error');
+        };
+        window.closeAdmin = () => { document.getElementById('admin-panel').classList.remove('active'); };
+
+        window.renderAdminQuestions = () => {
+            const selectEl = document.getElementById('admin-q-select'); const listEl = document.getElementById('admin-q-list'); const currentSelect = selectEl.value; 
+            let optionsHtml = '<option value="">-- เลือกคำถาม --</option>'; let listHtml = '';
+            for(let key in allQuestionsObj) {
+                const text = allQuestionsObj[key]; optionsHtml += `<option value="${key}">${text}</option>`;
+                listHtml += `<div class="q-list-item"><div class="q-list-text">${text}</div><div style="display:flex; gap:5px;"><button class="admin-btn btn-edit" onclick="adminEditQuestion('${key}')">✏️</button><button class="admin-btn btn-del" onclick="adminDelQuestion('${key}')">🗑️</button></div></div>`;
+            }
+            selectEl.innerHTML = optionsHtml; selectEl.value = currentSelect; listEl.innerHTML = listHtml;
+        };
+
+        window.adminAddQuestion = () => { const val = document.getElementById('admin-new-q').value.trim(); if(val) { push(ref(db, 'questions'), val).then(() => { window.showToast('เพิ่มคำถามสำเร็จ!', 'success'); document.getElementById('admin-new-q').value = ''; }); } else window.showToast('พิมพ์คำถามก่อน!', 'error'); };
+        window.adminEditQuestion = (key) => { const newText = prompt("แก้ไขคำถาม:", allQuestionsObj[key]); if(newText && newText.trim() !== "") { const updates = {}; updates[`questions/${key}`] = newText.trim(); update(ref(db), updates).then(() => window.showToast("แก้ไขเรียบร้อย!", "success")); } };
+        window.adminDelQuestion = (key) => { window.showCustomConfirm(`ลบคำถาม:\n"${allQuestionsObj[key]}" ?`, () => { remove(ref(db, `questions/${key}`)); remove(ref(db, `votes/${key}`)); window.showToast('ลบเรียบร้อย!', 'success'); }); };
+        
+        window.adminViewResults = (key) => {
+            const viewDiv = document.getElementById('admin-result-view'); const lbDiv = document.getElementById('admin-leaderboard');
+            if(!key) { viewDiv.style.display = 'none'; return; } viewDiv.style.display = 'block'; lbDiv.innerHTML = 'กำลังโหลดข้อมูล...';
+            unsubscribeAdminVote = onValue(ref(db, `votes/${key}`), (snapshot) => {
+                const data = snapshot.val(); if(!data) { lbDiv.innerHTML = '❌ ยังไม่มีคนโหวต'; return; }
+                let resultsArr = []; for (let fId in data) resultsArr.push({ id: fId.replace('friend_',''), votes: data[fId] }); resultsArr.sort((a, b) => b.votes - a.votes);
+                let html = ''; resultsArr.forEach((item, index) => { const name = FRIEND_NAMES[item.id] || item.id; html += `<div style="margin-bottom:5px; border-bottom:1px solid #334155; padding-bottom:5px;">${index+1}. ${name} (${item.votes} โหวต)</div>`; }); lbDiv.innerHTML = html;
+            });
+        };
+
+        window.adminClearVotes = () => { const key = document.getElementById('admin-q-select').value; if(!key) { window.showToast('เลือกคำถามก่อน!', 'error'); return; } window.showCustomConfirm(`ล้างคะแนนข้อ:\n"${allQuestionsObj[key]}" ?`, () => { remove(ref(db, `votes/${key}`)).then(() => window.showToast('ล้างเรียบร้อย!', 'success')); }); };
+        window.adminNukeAll = () => { window.showCustomConfirm('🚨 ล้างคะแนนทุกข้อกลับเป็น 0 ใช่หรือไม่?', () => { remove(ref(db, 'votes')).then(() => window.showToast('เคลียร์เรียบร้อย!', 'success')); }); };
+
+    </script>
+</body>
+</html>
